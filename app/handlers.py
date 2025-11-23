@@ -4,34 +4,51 @@ from aiogram.types import Message
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.state import State,StatesGroup
 from aiogram.fsm.context import FSMContext
-from  Main_Gemini import start_response
-
-Router=Router()
 
 
-class MyStates(StatesGroup):
-    waiting_response=State()
+from  Main_Gemini import Promt,Model
 
-@Router.message(CommandStart())
-async def start(message: Message):
-    await message.answer(f'Привет {message.from_user.first_name}\n Введите 1 чтобы начать')
+import app.keyboard as kb
+
+Model_= Model
+chat= Promt
+
+router=Router()
 
 
-@Router.message(F.text=='1')
-async def response(message: Message,state: FSMContext):
-    await message.answer(f'Напишите запрос в gemini')
-    await state.set_state(MyStates.waiting_response)
+class WaitingMessage(StatesGroup):
+    CaptureMessages = State()
+    NonCaptureMessages = State()
 
-@Router.message(MyStates.waiting_response)
-async def response_waiting(message: Message,state: FSMContext):
-    if message.text == '2':
-        await state.clear()
-        await message.answer("Общение завершено. Чтобы начать снова, введите /start или 1.")
-    try:
-        date = start_response(message.text)
-        await message.answer(f"{date}\n\n(Чтобы закончить общение, напишите 2)")
-    except Exception as e:
-        await message.answer((f"Ошибка при обработке запроса: {str(e)}\n\n(Чтобы закончить — напишите 2)"))
+@router.message(CommandStart())
+async def start(message: Message,state: FSMContext):
+    await message.answer(f'Привет {message.from_user.first_name}\n ',reply_markup=kb.Start)
+
+
+@router.message(F.text=="🤖 Начать чат с Gemini 🤖")
+async def new_chat(message:types.Message,state:FSMContext):
+    await state.set_state(WaitingMessage.CaptureMessages)
+    await message.answer('chats is been created✅')
+
+@router.message(WaitingMessage.CaptureMessages)
+async def bot_answer(message:types.Message,state:FSMContext):
+    if message.text:
+        if message.text=='Stop⛔':
+            await message.answer('Чат остановлен ✅')
+            await state.set_state(WaitingMessage.NonCaptureMessages)
+            await message.answer(f'Чтобы запустить чат еще раз нажмите на кнопку ',reply_markup=kb.Start)
+        else:
+            wait_answer= await message.answer('Генерация текста...⌛')
+            question=message.text
+            response=chat.send_message(question,
+                                       safety_settings={
+                                           'HATE': 'BLOCK_NONE',
+                                           'HARASSMENT': 'BLOCK_NONE',
+                                           'SEXUAL': 'BLOCK_NONE',
+                                           'DANGEROUS': 'BLOCK_NONE'
+                                       })
+            await message.bot.delete_message(chat_id=message.chat.id,message_id=wait_answer.message_id)
+            await message.answer(response.text,reply_markup=kb.Stop)
 
 
 
