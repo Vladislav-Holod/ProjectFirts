@@ -28,7 +28,7 @@ async def start(message: Message,state: FSMContext):
 @router.message(F.text=="🤖 Начать чат с Gemini 🤖")
 async def new_chat(message:types.Message,state:FSMContext):
     await state.set_state(WaitingMessage.CaptureMessages)
-    await message.answer('chats is been created✅')
+    await message.answer('Чат успешно создан✅')
 
 @router.message(WaitingMessage.CaptureMessages)
 async def bot_answer(message:types.Message,state:FSMContext):
@@ -48,7 +48,16 @@ async def bot_answer(message:types.Message,state:FSMContext):
                                            'DANGEROUS': 'BLOCK_NONE'
                                        })
             await message.bot.delete_message(chat_id=message.chat.id,message_id=wait_answer.message_id)
-            await message.answer(response.text,reply_markup=kb.Stop)
+
+            Text=response.text
+            if len(Text)>4096:
+                for i in range(0,len(Text),4096):
+                    await message.answer(Text[i:i+4096])
+
+            else:
+                await message.answer(Text,reply_markup=kb.Stop)
+
+
 
 
 

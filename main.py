@@ -8,10 +8,8 @@ from app.handlers import router
 load_dotenv()
 Token = os.getenv("TOKEN")
 
-
 bot = Bot(token=Token)
 dp = Dispatcher()
-
 
 
 async def main():
